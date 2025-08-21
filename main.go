@@ -17,27 +17,80 @@ type Product struct {
 var products []Product
 
 func getProducts(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Content-Type", "application/json")
+	allowCors(w)
+
+	GET(w, r)
+
+	sendData(w, products, http.StatusOK)
+}
+
+func createProduct(w http.ResponseWriter, r *http.Request) {
+	allowCors(w)
+
+	Options(w, r)
+
+	POST(w, r)
+
+	var newProduct Product
+
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&newProduct)
+
+	if err != nil {
+		fmt.Println(err)
+		http.Error(w, "plz give me a valid json", http.StatusBadRequest)
+		return
+	}
+
+	newProduct.ID = len(products) + 1
+
+	products = append(products, newProduct)
+
+	sendData(w, newProduct, http.StatusCreated)
+}
+
+func GET(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+}
+func POST(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+}
 
+func Options(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(200)
+	}
+}
+
+func allowCors(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+}
+
+func sendData(w http.ResponseWriter, data interface{}, status int) {
+	w.WriteHeader(status)
 	encoder := json.NewEncoder(w)
-	encoder.Encode(products)
+	encoder.Encode(data)
 }
 
 func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/products", getProducts)
+	mux.HandleFunc("/create-product", createProduct)
 
 	port := ":8080"
 	fmt.Println("Starting server on ", port)
-
 	err := http.ListenAndServe(port, mux)
-
 	if err != nil {
 		fmt.Println("Error starting server:", err)
 	}
