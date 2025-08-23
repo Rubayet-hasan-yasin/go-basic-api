@@ -17,19 +17,19 @@ type Product struct {
 var products []Product
 
 func getProducts(w http.ResponseWriter, r *http.Request) {
-	allowCors(w)
+	// allowCors(w)
 
-	GET(w, r)
+	// GET(w, r)
 
 	sendData(w, products, http.StatusOK)
 }
 
 func createProduct(w http.ResponseWriter, r *http.Request) {
-	allowCors(w)
+	// allowCors(w)
 
-	Options(w, r)
+	// Options(w, r)
 
-	POST(w, r)
+	// POST(w, r)
 
 	var newProduct Product
 
@@ -85,12 +85,15 @@ func sendData(w http.ResponseWriter, data interface{}, status int) {
 func main() {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/products", getProducts)
-	mux.HandleFunc("/create-product", createProduct)
+	mux.Handle("GET /products", corsMiddleware(http.HandlerFunc(getProducts)))
+	mux.Handle("/create-product", corsMiddleware(http.HandlerFunc(createProduct)))
 
 	port := ":8080"
 	fmt.Println("Starting server on ", port)
-	err := http.ListenAndServe(port, mux)
+
+	globalRouter := globalRouter(mux)
+
+	err := http.ListenAndServe(port, globalRouter)
 	if err != nil {
 		fmt.Println("Error starting server:", err)
 	}
@@ -138,4 +141,29 @@ func init() {
 	}
 
 	products = append(products, p1, p2, p3, p4, p5)
+}
+
+func corsMiddleware(next http.Handler) http.Handler {
+	handleCors := func(w http.ResponseWriter, r *http.Request) {
+		allowCors(w)
+		next.ServeHTTP(w, r)
+	}
+
+	handler := http.HandlerFunc(handleCors)
+
+	return handler
+
+}
+
+func globalRouter(mux *http.ServeMux) http.Handler {
+	handleAllReq := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodOptions {
+			allowCors(w)
+			w.WriteHeader(http.StatusOK)
+		} else {
+			mux.ServeHTTP(w, r)
+		}
+	}
+
+	return http.HandlerFunc(handleAllReq)
 }
