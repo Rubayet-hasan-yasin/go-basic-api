@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -10,8 +11,10 @@ func Logger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
+		fmt.Println("hit")
+
 		next.ServeHTTP(w, r)
 
-		log.Println(r.Method, r.URL.Path, time.Since(start).Microseconds(), "μs")
+		log.Println(r.Method, r.URL.Path, time.Since(start))
 	})
 }

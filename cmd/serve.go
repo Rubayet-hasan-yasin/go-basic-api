@@ -12,7 +12,7 @@ func Serve() {
 
 	manager := middleware.NewManager()
 
-	manager.Use(middleware.Logger)
+	manager.Use(middleware.Logger, middleware.Hudai)
 
 	initRoutes(mux, manager)
 
