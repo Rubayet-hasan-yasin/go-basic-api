@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"e-commerce/global_router"
-	"e-commerce/handlers"
+	"e-commerce/middleware"
 	"fmt"
 	"net/http"
 )
@@ -10,9 +10,11 @@ import (
 func Serve() {
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /products", http.HandlerFunc(handlers.GetProducts))
-	mux.Handle("POST /products", http.HandlerFunc(handlers.CreateProduct))
-	mux.Handle("GET /products/{id}", http.HandlerFunc(handlers.GetProductById))
+	manager := middleware.NewManager()
+
+	manager.Use(middleware.Logger)
+
+	initRoutes(mux, manager)
 
 	port := ":8080"
 	fmt.Println("Starting server on ", port)
