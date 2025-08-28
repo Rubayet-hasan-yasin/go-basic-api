@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -24,15 +23,21 @@ func (mngr *Manager) Use(middlewares ...Middleware){
 func (mngr *Manager) With(next http.Handler, middlewares ...Middleware) http.Handler{
 	n := next
 
-
 	for _, middleware := range middlewares{
 		n = middleware(n)
 	}
 
-	for _, globalMiddleware := range mngr.globalMiddlewares{
-		fmt.Println(len(mngr.globalMiddlewares))
-		n = globalMiddleware(n)
+	return n
+}
+
+func (mngr *Manager) WrapMux(mux http.Handler) http.Handler{
+	h := mux
+
+	// Preflight, Cors, Logger,
+	//Preflight(cors(logger(h)))
+	for _, middleware := range mngr.globalMiddlewares{
+		h = middleware(h)
 	}
 
-	return n
+	return h
 }
