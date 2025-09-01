@@ -1,7 +1,7 @@
 package main
 
 import (
-	"e-commerce/cmd"
+	"ecommerce/cmd"
 )
 
 func main() {

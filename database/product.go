@@ -8,8 +8,52 @@ type Product struct {
 	ImageUrl    string  `json:"imageUrl"`
 }
 
-var Products []Product
+var products []Product
 
+func Store(p Product) Product {
+	p.ID = len(products) + 1
+
+	products = append(products, p)
+
+	return p
+}
+
+func List() []Product {
+	return products
+}
+
+func GetByID(id int) *Product {
+	for _, product := range products {
+		if product.ID == id {
+			return &product
+		}
+	}
+
+	return nil
+}
+
+func Update (product Product) *Product{
+	for idx, p := range products{
+		if p.ID == product.ID {
+			products[idx] = product
+			return &p
+		}
+	}
+
+	return nil
+}
+
+
+func Delete(id int){
+	var temp []Product
+	for _, product :=range products{
+		if product.ID != id {
+			temp = append(temp, product)
+		}
+	}
+
+	products = temp
+}
 
 
 func init() {
@@ -53,5 +97,5 @@ func init() {
 		ImageUrl:    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRf0J-W_xQ8nJ2T7SeBHdkUc68NZIE0Zb4woQ&s",
 	}
 
-	Products = append(Products, p1, p2, p3, p4, p5)
+	products = append(products, p1, p2, p3, p4, p5)
 }
