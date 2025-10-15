@@ -1,13 +1,21 @@
 package product
 
 import (
-	"ecommerce/database"
+	"ecommerce/repo"
 	"ecommerce/util"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 )
+
+type ReqUpdateProduct struct {
+	ID          int     `json:"_id"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Price       float64 `json:"price"`
+	ImageUrl    string  `json:"imageUrl"`
+}
 
 func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 	productId := r.PathValue("id")
@@ -18,7 +26,7 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var newProduct database.Product
+	var newProduct ReqUpdateProduct
 
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&newProduct)
@@ -30,9 +38,15 @@ func (h *Handler) UpdateProduct(w http.ResponseWriter, r *http.Request) {
 
 	newProduct.ID = pId
 
-	updatedProduct := database.Update(newProduct)
+	_, err = h.productRepo.Update(repo.Product{
+		ID:          newProduct.ID,
+		Title:       newProduct.Title,
+		Description: newProduct.Description,
+		Price:       newProduct.Price,
+		ImageUrl:    newProduct.ImageUrl,
+	})
 
-	if updatedProduct == nil {
+	if err != nil {
 		util.SendError(w, http.StatusNotFound, "Product not found")
 		return
 	}

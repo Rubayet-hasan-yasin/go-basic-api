@@ -34,7 +34,7 @@ func (mngr *Manager) WrapMux(mux http.Handler) http.Handler{
 	h := mux
 
 	// Preflight, Cors, Logger,
-	//Preflight(cors(logger(h)))
+	//logger(cors(Preflight(h)))
 	for _, middleware := range mngr.globalMiddlewares{
 		h = middleware(h)
 	}
