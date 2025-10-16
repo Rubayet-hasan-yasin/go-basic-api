@@ -1,12 +1,18 @@
 package repo
 
+import (
+	"database/sql"
+
+	"github.com/jmoiron/sqlx"
+)
+
 type User struct {
-	ID          int    `json:"id"`
-	FirstName   string `json:"first_name"`
-	LastName    string `json:"last_name"`
-	Email       string `json:"email"`
-	Password    string `json:"password"`
-	IsShopOwner bool   `json:"is_shop_owner"`
+	ID          int    `json:"id" db:"id"`
+	FirstName   string `json:"first_name" db:"first_name"`
+	LastName    string `json:"last_name" db:"last_name"`
+	Email       string `json:"email" db:"email"`
+	Password    string `json:"password" db:"password"`
+	IsShopOwner bool   `json:"is_shop_owner" db:"is_shop_owner"`
 }
 
 type UserRepo interface {
@@ -18,26 +24,53 @@ type UserRepo interface {
 }
 
 type userRepo struct {
-	users []*User
+	db *sqlx.DB
 }
 
-func NewUserRepo () UserRepo {
-	return &userRepo{}
+func NewUserRepo(db *sqlx.DB) UserRepo {
+	return &userRepo{db: db}
 }
 
 func (r *userRepo) Create(user User) (*User, error) {
-	user.ID = len(r.users) + 1
-	r.users = append(r.users, &user)
+	query := `
+		INSERT INTO users (first_name, last_name, email, password, is_shop_owner)
+		VALUES (:first_name, :last_name, :email, :password, :is_shop_owner)
+		RETURNING id;
+	`
+
+	var id int
+	rows, err := r.db.NamedQuery(query, user)
+	if err != nil {
+		return nil, err
+	}
+	if rows.Next() {
+		rows.Scan(&id)
+	}
+	rows.Close()
+
+	user.ID = id
+
 	return &user, nil
 }
 
-
-
 func (r *userRepo) Find(email, pass string) (*User, error) {
-	for _, u := range r.users {
-		if u.Email == email && u.Password == pass {
-			return u, nil
-		}
-	}
-	return nil, nil
+    // SQL query to find the user
+    query := `
+        SELECT id, first_name, last_name, email, password, is_shop_owner
+        FROM users
+        WHERE email = $1 AND password = $2
+        LIMIT 1
+    `
+
+    var user User
+    // Get one row
+    err := r.db.Get(&user, query, email, pass)
+    if err != nil {
+        if err == sql.ErrNoRows || err.Error() == "sql: no rows in result set" {
+            return nil, nil // user not found
+        }
+        return nil, err // some other error
+    }
+
+    return &user, nil
 }
