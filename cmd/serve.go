@@ -21,7 +21,7 @@ func Serve() {
 		os.Exit(1)
 	}
 	
-	productRepo := repo.NewProductRepo()
+	productRepo := repo.NewProductRepo(dbConn)
 	userRepo := repo.NewUserRepo(dbConn)
 	
 	middleware := middleware.NewMiddlewares(cnf)

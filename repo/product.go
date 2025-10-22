@@ -1,11 +1,18 @@
 package repo
 
+import (
+	"database/sql"
+	"fmt"
+
+	"github.com/jmoiron/sqlx"
+)
+
 type Product struct {
-	ID          int     `json:"_id"`
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Price       float64 `json:"price"`
-	ImageUrl    string  `json:"imageUrl"`
+	ID          int     `json:"_id" db:"id"`
+	Title       string  `json:"title" db:"title"`
+	Description string  `json:"description" db:"description"`
+	Price       float64 `json:"price" db:"price"`
+	ImageUrl    string  `json:"imageUrl" db:"image_url"`
 }
 
 type ProductRepo interface {
@@ -17,105 +24,96 @@ type ProductRepo interface {
 }
 
 type productRepo struct {
-	productList []*Product
+	db *sqlx.DB
 }
 
-func NewProductRepo() ProductRepo {
+func NewProductRepo(db *sqlx.DB) ProductRepo {
 	repo := &productRepo{
+		db: db,
 	}
-
-	generateInitialProducts(repo)
 	return repo
 }
 
 func (r *productRepo) Create(p Product) (*Product, error) {
-	p.ID = len(r.productList) + 1
-	r.productList = append(r.productList, &p)
+	query := `
+		INSERT INTO products (title, description, price, image_url)
+		values ($1, $2, $3, $4)
+		RETURNING id;
+		`
+
+	row := r.db.QueryRow(query, p.Title, p.Description, p.Price, p.ImageUrl)
+	err := row.Scan(&p.ID)
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &p, nil
 }
 
-func (r *productRepo) Get(productId int) (*Product, error) {
-	for _, product := range r.productList {
-		if product.ID == productId {
-			return product, nil
+func (r *productRepo) Get(id int) (*Product, error) {
+	var prd Product
+
+	query := `SELECT 
+	id, 
+	title, 
+	description, 
+	price,
+	image_url
+	FROM products
+	WHERE id=$1;`
+
+	err := r.db.Get(&prd, query, id)
+	if err != nil {
+		if err == sql.ErrNoRows{
+			return nil, nil
 		}
+		return nil, err
 	}
 
-	return nil, nil
+	return &prd, nil
 }
-
 
 func (r *productRepo) List() ([]*Product, error) {
-	return r.productList, nil
+	var prdList []*Product
+
+	query := `SELECT
+	id,
+	title,
+	description,
+	price,
+	image_url
+	FROM products
+	`
+
+	err := r.db.Select(&prdList, query)
+	if err != nil {
+		fmt.Println("Error fetching product list:", err)
+		return nil, err
+	}
+
+	return prdList, nil
 }
 
+func (r *productRepo) Delete(id int) error {
+	query := `DELETE FROM products WHERE id=$1;`
 
-func (r *productRepo) Delete(productId int) error {
-	var temp []*Product
-	for _, product :=range r.productList{
-		if product.ID != productId {
-			temp = append(temp, product)
-		}
-	}
+	_, err := r.db.Exec(query, id)
 
-	r.productList = temp
-	return nil
+	return err
 }
 
-
-func (r *productRepo) Update(product Product) (*Product, error) {
-	for idx, p := range r.productList{
-		if p.ID == product.ID {
-			r.productList[idx] = &product
-			return p, nil
-		}
+func (r *productRepo) Update(p Product) (*Product, error) {
+	query := `
+		UPDATE products 
+		SET title=$1, description=$2, price=$3, image_url=$4
+		WHERE id=$5;
+	`
+	row := r.db.QueryRow(query, p.Title, p.Description, p.Price, p.ImageUrl, p.ID)
+	err := row.Err()
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, nil
-}
-
-
-
-func generateInitialProducts(r *productRepo) {
-	p1 := Product{
-		ID:          1,
-		Title:       "Mango",
-		Description: "A delicious tropical fruit",
-		Price:       100,
-		ImageUrl:    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRf0J-W_xQ8nJ2T7SeBHdkUc68NZIE0Zb4woQ&s",
-	}
-
-	p2 := Product{
-		ID:          2,
-		Title:       "Apple",
-		Price:       50,
-		Description: "A sweet red fruit",
-		ImageUrl:    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRf0J-W_xQ8nJ2T7SeBHdkUc68NZIE0Zb4woQ&s",
-	}
-
-	p3 := Product{
-		ID:          3,
-		Title:       "Banana",
-		Description: "A long yellow fruit",
-		Price:       30,
-		ImageUrl:    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQG7ElBNPs-HbYJJOMHRu7lEmphTn8-52FYKw&s",
-	}
-
-	p4 := Product{
-		ID:          4,
-		Title:       "Pineapple",
-		Description: "A tropical fruit with a spiky exterior",
-		Price:       150,
-		ImageUrl:    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRf0J-W_xQ8nJ2T7SeBHdkUc68NZIE0Zb4woQ&s",
-	}
-
-	p5 := Product{
-		ID:          5,
-		Title:       "Grapes",
-		Description: "A bunch of small round fruits",
-		Price:       200,
-		ImageUrl:    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRf0J-W_xQ8nJ2T7SeBHdkUc68NZIE0Zb4woQ&s",
-	}
-
-	r.productList = append(r.productList, &p1, &p2, &p3, &p4, &p5)
+	return &p, nil
 }
