@@ -15,7 +15,7 @@ import (
 func Serve() {
 	cnf := config.GetConfig()
 
-	dbConn, err := db.NewConnection()
+	dbConn, err := db.NewConnection(cnf.DB)
 	if err != nil {
 		fmt.Println("Failed to connect to the database:", err)
 		os.Exit(1)
