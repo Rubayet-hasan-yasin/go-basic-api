@@ -23,7 +23,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request){
 		return
 	}
 
-	usr, err := h.userRepo.Find(reqLogin.Email, reqLogin.Password)
+	usr, err := h.svc.Find(reqLogin.Email, reqLogin.Password)
 	if err != nil {
 		util.SendError(w, http.StatusInternalServerError, "Internal Server Error")
 		return
